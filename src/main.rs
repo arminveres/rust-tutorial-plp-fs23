@@ -1,20 +1,50 @@
+use std::env;
+use std::fs;
+use std::io;
+use std::path;
+use std::process;
 use std::thread;
 
+struct CLI {
+    data_in: path::PathBuf,
+    data_out: path::PathBuf,
+}
+
+impl CLI {
+    fn build(args: Vec<String>) -> Result<CLI, &'static str> {
+        if args.len() < 3 {
+            return Err("not enough arguments");
+        }
+        let data_in = args[1].clone();
+        let data_out = args[2].clone();
+        Ok(Self {
+            data_in: path::PathBuf::from(data_in),
+            data_out: path::PathBuf::from(data_out),
+        })
+    }
+}
+
 // This is the `main` thread
-fn main() {
+fn main() -> io::Result<()> {
+    let args = env::args().collect::<Vec<String>>();
+
+    // args gets moved and consumed
+    let conf = CLI::build(args).unwrap_or_else(|err| {
+        eprintln!(
+            "Problem parsing arguments: {err}.
+Usage: [data_in] [data_out]"
+        );
+        process::exit(1);
+    });
+
     // This is our data to process.
     // We will calculate the sum of all digits via a threaded  map-reduce algorithm.
     // Each whitespace separated chunk will be handled in a different thread.
-    //
-    // TODO: see what happens to the output if you insert spaces!
-    let data = "86967897737416471853297327050364959
-11861322575564723963297542624962850
-70856234701860851907960690014725639
-38397966707106094172783238747669219
-52380795257888236525459303330302837
-58495327135744041048897885734297812
-69920216438980873548808413720956532
-16278424637452589860345374828574668";
+
+    let data = fs::read_to_string(&conf.data_in).unwrap_or_else(|err| {
+        eprintln!("Error opening the file {err}");
+        process::exit(1)
+    });
 
     // Make a vector to hold the child-threads which we will spawn.
     let mut children = vec![];
@@ -27,14 +57,29 @@ fn main() {
 
     // split our data into segments for individual calculation
     // each chunk will be a reference (&str) into the actual data
-    let chunked_data = data.split_whitespace();
+
+    // let chunked_data = data.clone().as_str().split_whitespace();
+    // NOTE: (aver) As suggested by ChatGPT:
+    // This converts the iterator of &str references into an owned vector of String values.
+    // The map call is necessary to convert each &str into a String so that they are owned by the vector.
+    let chunked_data: Vec<String> = data
+        .clone()
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .collect();
 
     // Iterate over the data segments.
     // .enumerate() adds the current loop index to whatever is iterated
     // the resulting tuple "(index, element)" is then immediately
     // "destructured" into two variables, "i" and "data_segment" with a
     // "destructuring assignment"
-    for (i, data_segment) in chunked_data.enumerate() {
+
+    // for (i, data_segment) in chunked_data.enumerate() {
+    // NOTE: (aver) As suggested by ChatGPT:
+    // By using into_iter() instead of iter(), we consume the vector and transfer ownership of each
+    // String segment to the closure. This way, the closure can access each String for as long as
+    // it needs to without worrying about the data being dropped prematurely.
+    for (i, data_segment) in chunked_data.into_iter().enumerate() {
         println!("data segment {} is \"{}\"", i, data_segment);
 
         // Process each data segment in a separate thread
@@ -49,8 +94,7 @@ fn main() {
         //
         // Rust is smart enough to infer the '-> u32' from
         // the closure itself so we could have left that out.
-        //
-        // TODO: try removing the 'move' and see what happens
+
         children.push(thread::spawn(move || -> u32 {
             // Calculate the intermediate sum of this segment:
             let result = data_segment
@@ -85,4 +129,5 @@ fn main() {
     let final_result = children.into_iter().map(|c| c.join().unwrap()).sum::<u32>();
 
     println!("Final sum result: {}", final_result);
+    Ok(())
 }

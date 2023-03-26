@@ -1,8 +1,9 @@
 use std::env;
 use std::fs;
-use std::io;
+use std::io::{self, prelude::*};
 use std::path;
 use std::process;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 struct CLI {
@@ -68,6 +69,9 @@ Usage: [data_in] [data_out]"
         .map(|s| s.to_string())
         .collect();
 
+    // We'll use a mutex to ensure that only one thread is writing to the output file at a time.
+    let output_file = Arc::new(Mutex::new(fs::File::create(&conf.data_out)?));
+
     // Iterate over the data segments.
     // .enumerate() adds the current loop index to whatever is iterated
     // the resulting tuple "(index, element)" is then immediately
@@ -107,6 +111,9 @@ Usage: [data_in] [data_out]"
 
             // println! locks stdout, so no text-interleaving occurs
             println!("processed segment {}, result={}", i, result);
+            // TODO: (aver) add thread output to file as well
+            // let output_file = output_file.lock().unwrap();
+            // output_file.write_fmt(format_args!("processed segment {}, result={}", i, result));
 
             // "return" not needed, because Rust is an "expression language", the
             // last evaluated expression in each block is automatically its value.
@@ -121,13 +128,14 @@ Usage: [data_in] [data_out]"
      ************************************************************************/
 
     // combine each thread's intermediate results into a single final sum.
-    //
     // we use the "turbofish" ::<> to provide sum() with a type hint.
-    //
-    // TODO: try without the turbofish, by instead explicitly
-    // specifying the type of final_result
     let final_result = children.into_iter().map(|c| c.join().unwrap()).sum::<u32>();
 
     println!("Final sum result: {}", final_result);
+    output_file
+        .lock()
+        .unwrap()
+        .write_fmt(format_args!("Final sum result: {}\n", final_result));
+
     Ok(())
 }

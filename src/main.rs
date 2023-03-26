@@ -4,7 +4,8 @@ use std::io::{self, prelude::*};
 use std::path;
 use std::process;
 use std::sync::{Arc, Mutex};
-use std::thread;
+
+mod map_reduce;
 
 struct CLI {
     data_in: path::PathBuf,
@@ -48,13 +49,6 @@ Usage: [data_in] [data_out]"
     });
 
     // Make a vector to hold the child-threads which we will spawn.
-    let mut children = vec![];
-
-    /*************************************************************************
-     * "Map" phase
-     *
-     * Divide our data into segments, and apply initial processing
-     ************************************************************************/
 
     // split our data into segments for individual calculation
     // each chunk will be a reference (&str) into the actual data
@@ -72,64 +66,8 @@ Usage: [data_in] [data_out]"
     // We'll use a mutex to ensure that only one thread is writing to the output file at a time.
     let output_file = Arc::new(Mutex::new(fs::File::create(&conf.data_out)?));
 
-    // Iterate over the data segments.
-    // .enumerate() adds the current loop index to whatever is iterated
-    // the resulting tuple "(index, element)" is then immediately
-    // "destructured" into two variables, "i" and "data_segment" with a
-    // "destructuring assignment"
-
-    // for (i, data_segment) in chunked_data.enumerate() {
-    // NOTE: (aver) As suggested by ChatGPT:
-    // By using into_iter() instead of iter(), we consume the vector and transfer ownership of each
-    // String segment to the closure. This way, the closure can access each String for as long as
-    // it needs to without worrying about the data being dropped prematurely.
-    for (i, data_segment) in chunked_data.into_iter().enumerate() {
-        println!("data segment {} is \"{}\"", i, data_segment);
-
-        // Process each data segment in a separate thread
-        //
-        // spawn() returns a handle to the new thread,
-        // which we MUST keep to access the returned value
-        //
-        // 'move || -> u32' is syntax for a closure that:
-        // * takes no arguments ('||')
-        // * takes ownership of its captured variables ('move') and
-        // * returns an unsigned 32-bit integer ('-> u32')
-        //
-        // Rust is smart enough to infer the '-> u32' from
-        // the closure itself so we could have left that out.
-
-        children.push(thread::spawn(move || -> u32 {
-            // Calculate the intermediate sum of this segment:
-            let result = data_segment
-                // iterate over the characters of our segment..
-                .chars()
-                // .. convert text-characters to their number value..
-                .map(|c| c.to_digit(10).expect("should be a digit"))
-                // .. and sum the resulting iterator of numbers
-                .sum();
-
-            // println! locks stdout, so no text-interleaving occurs
-            println!("processed segment {}, result={}", i, result);
-            // TODO: (aver) add thread output to file as well
-            // let output_file = output_file.lock().unwrap();
-            // output_file.write_fmt(format_args!("processed segment {}, result={}", i, result));
-
-            // "return" not needed, because Rust is an "expression language", the
-            // last evaluated expression in each block is automatically its value.
-            result
-        }));
-    }
-
-    /*************************************************************************
-     * "Reduce" phase
-     *
-     * Collect our intermediate results, and combine them into a final result
-     ************************************************************************/
-
-    // combine each thread's intermediate results into a single final sum.
-    // we use the "turbofish" ::<> to provide sum() with a type hint.
-    let final_result = children.into_iter().map(|c| c.join().unwrap()).sum::<u32>();
+    let children_threads = map_reduce::map(chunked_data);
+    let final_result = map_reduce::reduce(children_threads);
 
     println!("Final sum result: {}", final_result);
     output_file

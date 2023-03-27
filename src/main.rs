@@ -3,7 +3,6 @@ use std::fs;
 use std::io::{self, prelude::*};
 use std::path;
 use std::process;
-use std::sync::{Arc, Mutex};
 
 mod map_reduce;
 
@@ -64,16 +63,13 @@ Usage: [data_in] [data_out]"
         .collect();
 
     // We'll use a mutex to ensure that only one thread is writing to the output file at a time.
-    let output_file = Arc::new(Mutex::new(fs::File::create(&conf.data_out)?));
+    let mut output_file = fs::File::create(&conf.data_out)?;
 
     let children_threads = map_reduce::map(chunked_data);
     let final_result = map_reduce::reduce(children_threads);
 
     println!("Final sum result: {}", final_result);
-    output_file
-        .lock()
-        .unwrap()
-        .write_fmt(format_args!("Final sum result: {}\n", final_result));
+    output_file.write_fmt(format_args!("Final sum result: {}\n", final_result));
 
     Ok(())
 }

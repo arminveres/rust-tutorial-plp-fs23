@@ -16,6 +16,28 @@ fn main() {
 69920216438980873548808413720956532
 16278424637452589860345374828574668";
 
+let data_ownership = "86967897737416471853297327050364959
+11861322575564723963297542624962850
+70856234701860851907960690014725639
+38397966707106094172783238747669219
+52380795257888236525459303330302837
+58495327135744041048897885734297812
+69920216438980873548808413720956532
+16278424637452589860345374828574668".to_string();
+
+    // Call a function that borrows a reference to data_ownership
+    let string_length = calculate_length(&data_ownership);
+
+    // We still own `data_ownership` and can use it here
+    println!("Length of string: {}", string_length);
+
+    // Call a function that takes ownership of data_ownership
+    take_ownership(data_ownership);
+
+    //What would happen if we called take_ownership befor calling calculate_length?
+
+
+
     // Make a vector to hold the child-threads which we will spawn.
     let mut children = vec![];
 
@@ -27,9 +49,9 @@ fn main() {
 
     // split our data into segments for individual calculation
     // each chunk will be a reference (&str) into the actual data
-    let chunked_data = data.split_whitespace();
+    let chunked_data=  data.split_whitespace();
 
-    // Iterate over the data segments.
+    // Iterate over the data segments. 
     // .enumerate() adds the current loop index to whatever is iterated
     // the resulting tuple "(index, element)" is then immediately
     // "destructured" into two variables, "i" and "data_segment" with a
@@ -85,4 +107,17 @@ fn main() {
     let final_result = children.into_iter().map(|c| c.join().unwrap()).sum::<u32>();
 
     println!("Final sum result: {}", final_result);
+}
+
+
+fn take_ownership(some_string: String) {
+    // `some_string` now owns the string data previously owned by `data_ownership`
+    println!("The string is: {}", some_string);
+    // `some_string` will be dropped when it goes out of scope and the string data will be freed
+}
+
+fn calculate_length(s: &String) -> usize {
+    // `s` is a reference to the string data owned by `data_ownership`
+    s.len()
+    // We don't own `s`, so it won't be dropped when this function ends
 }

@@ -15,7 +15,6 @@ builds the application, to run it, you need to run it manually `./target/debug/[
 
 Adding `--release` flag to `build` or `run` creates an optmized version of the binary
 
-
 ### Visual Studio Code
 
 - Install Rust via the [rustup installer](https://rustup.rs/) 
@@ -32,3 +31,22 @@ cargo build
 ```rust
 cargo run
 ```
+
+### Intellij IDEA
+
+Install the toolchain from this [link](https://rustup.rs/), it will give the setup for the
+appropriate operating system.
+
+#### Option 1 - configure project directly through Intellij IDEA 
+Open Intellij IDEA, and press `Ctrl + Alt + S` to go to `IDE Settings -> Plugins`. From the `Marketplace`, select `Rust` and press `Install`. Then, press the `Restart IDE` button.
+
+Go to `Projects -> New Project -> Rust`. In the setup settings, make sure that the `Toolchain` is set (should be done automatically). Otherwise, set `Toolchain location` to the `.cargo/bin` directory of where the toolchain was installed. 
+
+The Rust standard library should set automatically, or a prompt should appear with the option to download it. Do so. 
+
+Finally, select Project Template as `Binary`, and press `Next`. Select a project location and press `Create Project`.
+
+#### Option 2 - configure project through command line, open with Intellij IDEA
+Follow the command-line setup instructions above to create a project. Open Intellij IDEA, and press `Ctrl + Alt + S` to go to `IDE Settings -> Plugins`. From the `Marketplace`, select `Rust` and press `Install`. Then, press the `Restart IDE` button.
+
+Once the IDE restarts, select `Open Existing Project` and select the rust project you created.

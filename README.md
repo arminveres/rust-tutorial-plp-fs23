@@ -50,3 +50,6 @@ Finally, select Project Template as `Binary`, and press `Next`. Select a project
 Follow the command-line setup instructions above to create a project. Open Intellij IDEA, and press `Ctrl + Alt + S` to go to `IDE Settings -> Plugins`. From the `Marketplace`, select `Rust` and press `Install`. Then, press the `Restart IDE` button.
 
 Once the IDE restarts, select `Open Existing Project` and select the rust project you created.
+
+## Helpful Resources
+  [Rust by Example](https://doc.rust-lang.org/rust-by-example/index.html) is a very useful resource to learn more about the language.

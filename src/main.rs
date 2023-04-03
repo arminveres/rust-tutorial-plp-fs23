@@ -67,11 +67,9 @@ Usage: [data_in] [data_out]"
     // This converts the iterator of &str references into an owned vector of String values.
     // The map call is necessary to convert each &str into a String so that they are owned by the vector.
     // Otherwise the references will be dropped before the threads finish.
-    let chunked_data: Vec<String> = data
-        .clone()
+    let chunked_data = data
         .split_whitespace()
-        .map(|s| s.to_string())
-        .collect();
+        .map(|s| s.to_string());
 
     let children_threads = map_reduce::map(chunked_data);
     let final_result = map_reduce::reduce(children_threads);
